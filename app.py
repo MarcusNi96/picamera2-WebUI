@@ -220,20 +220,35 @@ class CameraObject:
         sorted_resolutions = sorted(unique_resolutions, key=lambda x: (x[0] * x[1], x))
         return sorted_resolutions
 
-    def take_photo(self):
+    def take_photo(self, custom_prefix='', ra_value='', rz_value=''):
         try:
             timestamp = int(datetime.timestamp(datetime.now()))
-            image_name = f'pimage_cam_{self.camera_info["Num"]}_{timestamp}'
+            # Replace dot with comma in Ra and Rz, if present
+            if ra_value:
+                ra_value = ra_value.replace('.', ',')
+                ra_part = f"-Ra{ra_value}"
+            else:
+                ra_part = ""
+            if rz_value:
+                rz_value = rz_value.replace('.', ',')
+                rz_part = f"-Rz{rz_value}"
+            else:
+                rz_part = ""
+            # Build file name: prefix-Ra<value>-Rz<value>-pimage_cam_<Num>_<timestamp>
+            if custom_prefix:
+                image_name = f'{custom_prefix}{ra_part}{rz_part}_pimage_cam_{self.camera_info["Num"]}_{timestamp}'
+            else:
+                image_name = f'pimage_cam_{self.camera_info["Num"]}_{timestamp}'
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
             request = self.camera.capture_request()
             request.save("main", f'{filepath}.jpg')
-            if self.live_config['capture-settings']["makeRaw"]:
+            if self.live_config["capture-settings"]["makeRaw"]:
                 request.save_dng(f'{filepath}.dng')
             request.release()
             logging.info(f"Image captured successfully. Path: {filepath}")
         except Exception as e:
             logging.error(f"Error capturing image: {e}")
-
+        
     def start_streaming(self):
         self.output = StreamingOutput()
         encoder = self.live_config['capture-settings'].get("Encoder", "MJPEGEncoder")
@@ -706,9 +721,13 @@ def save_config_file(camera_num):
 @app.route('/capture_photo_<int:camera_num>', methods=['POST'])
 def capture_photo(camera_num):
     try:
-        cameras_data = [(camera_num, camera) for camera_num, camera in cameras.items()]
+        data = request.get_json()
+        custom_prefix = data.get('custom_prefix', '')
+        ra_value = data.get('ra_value', '')
+        rz_value = data.get('rz_value', '')
         camera = cameras.get(camera_num)
-        camera.take_photo()  # Call your take_photo function
+        # Pass the new fields to take_photo
+        camera.take_photo(custom_prefix, ra_value, rz_value)
         time.sleep(1)
         return jsonify(success=True, message="Photo captured successfully")
     except Exception as e:

@@ -11,6 +11,9 @@
             <div class="pt-3 row">
                 <div class="d-grid gap-2 col-4 mx-auto">
                     <button type="button" class="btn btn-primary btn-success btn-lg" id="captureButton" onclick="capturePhoto()">Capture Image</button>
+                    <input type="text" id="imageFilename" class="form-control mt-2" placeholder="Enter custom prefix (optional)">
+                    <input type="text" id="raValue" class="form-control mt-2" placeholder="Enter Ra value (optional)">
+                    <input type="text" id="rzValue" class="form-control mt-2" placeholder="Enter Rz value (optional)">
                     <!--<button type="button" class="btn btn-primary btn-info btn-lg" id="starttimelapseButton" onclick="start_timelapse()">Start Timelapse</button>-->
                     <!--<button type="button" class="btn btn-primary btn-danger btn-lg" id="stoptimelapseButton" onclick="stop_timelapse()">Stop Timelapse</button>-->
                 </div>
@@ -1424,43 +1427,43 @@ function capturePhoto() {
     if (!isButtonEnabled) {
         return;
     }
-
-    // Disable the button to prevent rapid presses
     captureButton.disabled = true;
     isButtonEnabled = false;
-    // Show alert based on the condition
     const alertElement = document.getElementById('captureAlert');
+    
+    const customPrefix = document.getElementById('imageFilename').value.trim();
+    const raValue = document.getElementById('raValue').value.trim();
+    const rzValue = document.getElementById('rzValue').value.trim();
 
-    // Call your capture_photo function here
-    fetch('/capture_photo_'+ camera_num, {
+    fetch('/capture_photo_' + camera_num, {
         method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            custom_prefix: customPrefix,
+            ra_value: raValue,
+            rz_value: rzValue
+        })
     })
     .then(response => response.json())
     .then(data => {
-        // Handle the success response here
         console.log(data);
-
-        // Re-enable the button after a successful response
         enableCaptureButton();
-        // Success alert
         alertElement.className = 'alert alert-success';
         alertElement.textContent = 'Image saved successfully.';
     })
     .catch(error => {
-        // Handle the error response here
         console.error('Error capturing photo:', error);
-        // Error alert
         alertElement.className = 'alert alert-danger';
         alertElement.textContent = 'Error capturing photo.';
-        // Re-enable the button in case of an error
         enableCaptureButton();
     });
+    
     alertElement.style.display = 'block';
-
-    // Optional: Hide the alert after a few seconds
     setTimeout(() => {
         alertElement.style.display = 'none';
-    }, 5000); // Adjust the time as needed
+    }, 5000);
 }
 
 function stop_timelapse() {
