@@ -7,8 +7,19 @@
         <div class="col-lg-8 pt-5">
             <!-- ###### Main Content ###### -->
             <h2 class="pt-4 pb-2 mb-4 border-bottom">Camera Feed</h2>
-            <img class="img-fluid" id="cameraImage" alt="Camera Feed">
-            <div class="pt-3 row">
+            <div class="camera-feed-container" style="position: relative; display: inline-block;">
+                <img class="img-fluid" id="cameraImage" alt="Camera Feed">
+                <div class="overlay-square"
+                     style="position: absolute;
+                            width: 224px;
+                            height: 224px;
+                            border: 1px solid red;
+                            left: 50%;
+                            top: 50%;
+                            transform: translate(-50%, -50%);
+                            pointer-events: none;">
+                </div>
+            </div>
                 <div class="d-grid gap-2 col-4 mx-auto">
                     <button type="button" class="btn btn-primary btn-success btn-lg" id="captureButton" onclick="capturePhoto()">Capture Image</button>
                     <input type="text" id="imageFilename" class="form-control mt-2" placeholder="Enter custom prefix (optional)">
