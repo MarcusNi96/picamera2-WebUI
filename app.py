@@ -309,6 +309,12 @@ class CameraObject:
             "Resolution": 0,
             "Encoder": "MJPEGEncoder"
         }
+        self.cropping_settings = {
+            "CropEnable": False,
+            "cropSquareSize": 224,
+            "gridRows": 3,
+            "gridColumns": 3,
+        }
         self.rotation = {
             "hflip": 0,
             "vflip": 0
@@ -337,7 +343,7 @@ class CameraObject:
         self.live_settings = {key: value for key, value in self.live_settings.items() if key in self.settings}
         self.camera.set_controls(self.live_settings)
         self.rotation_settings = self.rotation
-        self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'GPIO':self.gpio}
+        self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'cropping-settings':self.cropping_settings, 'GPIO':self.gpio}
         self.start_streaming()
         self.configure_camera()
         self.camera_info['Has_Config'] = False
@@ -396,7 +402,11 @@ class CameraObject:
 
     def update_live_config(self, data):
          # Update only the keys that are present in the data
+        print("Update Live Config !!!!!!!!!!!!!!")
+        # print("controls",  self.live_config['controls'])
+        # print("capture",  self.live_config['capture-settings'])
         for key in data:
+            print("Key", key, "data[Key]", data[key])
             if key in self.live_config['controls']:
                 try:
                     if key in ('AfMode', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeFlickerPeriod', 'AeMeteringMode', 'AfRange', 'AfSpeed', 'AwbMode', 'ExposureTime') :
@@ -440,6 +450,18 @@ class CameraObject:
                     self.start_streaming()
                     success = True
                     return success, settings
+            elif key in self.live_config['cropping-settings']:
+                try:
+                    if key == 'CropEnable':
+                        self.live_config['cropping-settings'][key] = int(data[key])
+                    elif key in ('gridRows', 'gridColumns', 'cropSquareSize'): 
+                        self.live_config['cropping-settings'][key] = int(data[key])
+                    success = True
+                    settings = self.live_config['cropping-settings']
+                    print(f'\nUpdated live setting:\n{settings}\n')
+                    return success, settings
+                except Exception as e:
+                    logging.error(f"Erros saving CropSettings: {e}")
             elif key in self.live_config['GPIO']:
                 if key in ('button'):
                     self.live_config['GPIO'][key] = int(data[key])
