@@ -7,19 +7,27 @@
         <div class="col-lg-8 pt-5">
             <!-- ###### Main Content ###### -->
             <h2 class="pt-4 pb-2 mb-4 border-bottom">Camera Feed</h2>
+            <!-- <img class="img-fluid" id="cameraImage" alt="Camera Feed"> -->
             <div class="camera-feed-container" style="position: relative; display: inline-block;">
-                <img class="img-fluid" id="cameraImage" alt="Camera Feed">
-                <div class="overlay-square"
-                     style="position: absolute;
-                            width: 224px;
-                            height: 224px;
-                            border: 1px solid red;
-                            left: 50%;
-                            top: 50%;
-                            transform: translate(-50%, -50%);
-                            pointer-events: none;">
+                <img class="img-fluid" id="cameraImage" alt="Camera Feed" onload="adjustOverlay()">
+                <div class="overlay-square" id="overlaySquare1"
+                    style="position: absolute;
+                        border: 1px solid red;
+                        left: 50%;
+                        top: 50%;
+                        transform: translate(-50%, -50%);
+                        pointer-events: none;">
+                </div>
+                <div class="overlay-square" id="overlaySquare2"
+                    style="position: absolute;
+                        border: 1px solid red;
+                        left: 50%;
+                        top: 50%;
+                        transform: translate(50%, -50%);
+                        pointer-events: none;">
                 </div>
             </div>
+            <div class="pt-3 row">
                 <div class="d-grid gap-2 col-4 mx-auto">
                     <button type="button" class="btn btn-primary btn-success btn-lg" id="captureButton" onclick="capturePhoto()">Capture Image</button>
                     <input type="text" id="imageFilename" class="form-control mt-2" placeholder="Enter custom prefix (optional)">
@@ -825,6 +833,35 @@
 
 <script>
 
+function adjustOverlay() {
+    const cameraImage = document.getElementById('cameraImage');
+    const overlay1 = document.getElementById('overlaySquare1');
+    const overlay2 = document.getElementById('overlaySquare2');
+
+    if (cameraImage && overlay1 && overlay2) {
+        const imageHeightOnScreen = cameraImage.offsetHeight;
+        const imageWidthOnScreen = cameraImage.offsetWidth;
+        const imageHeightStream = cameraImage.naturalHeight;
+        const imageWidtStream = cameraImage.naturalWidth;
+
+        // Calculate the multiplier
+        const multiplier = 224 / imageHeightStream;
+
+        // Calculate the overlay size
+        const overlaySize = imageHeightOnScreen * multiplier;
+
+        overlay1.style.width = `${overlaySize}px`;
+        overlay1.style.height = `${overlaySize}px`;
+
+        overlay2.style.width = `${overlaySize}px`;
+        overlay2.style.height = `${overlaySize}px`;
+
+        console.log("AdjustOverlay() imageHeight", imageHeightOnScreen, "imageWidth", imageWidthOnScreen, "imageHeigthStream", imageHeightStream , "imageWidthStream", imageWidtStream);
+        console.log("AdjustOverlay() multiplier", multiplier, "overlaySize", overlaySize);
+    }
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM content loaded');
 
@@ -844,6 +881,10 @@ document.addEventListener('DOMContentLoaded', function () {
     updateUI(rotationSettings);
     updateUI(capture_settings);
     console.log(capture_settings);
+
+    // Call adjustOverlay initially and on window resize
+    adjustOverlay();
+    window.addEventListener('resize', adjustOverlay);
 
 });
 
