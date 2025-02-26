@@ -9,7 +9,7 @@
             <h2 class="pt-4 pb-2 mb-4 border-bottom">Camera Feed</h2>
             <!-- <img class="img-fluid" id="cameraImage" alt="Camera Feed"> -->
             <div class="camera-feed-container" style="position: relative; display: inline-block;">
-                <img class="img-fluid" id="cameraImage" alt="Camera Feed" onload="adjustOverlay()">
+                <img class="img-fluid" id="cameraImage" alt="Camera Feed" onload="drawCropGrid()">
             </div>
             <div class="pt-3 row">
                 <div class="d-grid gap-2 col-4 mx-auto">
@@ -618,11 +618,11 @@
                         <div class="accordion-body">
                             <!-- Enable Cropping -->
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="CropEnable" data-bs-toggle="collapse" href="#CroppingOptions" onchange="adjustSwitchSetting('CropEnable')">
+                                <input class="form-check-input" type="checkbox" role="switch" id="CropEnable" onchange="adjustSwitchSetting('CropEnable')">
                                 <label class="form-check-label" for="CropEnable">Enable Cropping</label>
                             </div>
-                            <!-- Cropping Options -->
-                            <div class="collapse p-2" id="CroppingOptions">
+                            <!-- Cropping Options (always shown) -->
+                            <div class="p-2" id="CroppingOptions">
                                 <div class="mb-3">
                                     <label for="cropSquareSize" class="form-label">Square Size (pixels)</label>
                                     <input type="number" class="form-control" id="cropSquareSize" min="1" max="10000" step="1" onchange="adjustNumericSetting('cropSquareSize')">
@@ -854,72 +854,61 @@
 
 <script>
 
-    // Optionally, call drawCropGrid() when cropping is toggled on
-function toggleCroppingOptions() {
-    const croppingOptions = document.getElementById('CroppingOptions');
-    if (document.getElementById('enableCropping').checked) {
-        $(croppingOptions).collapse('show');
-        drawCropGrid();
-    } else {
-        $(croppingOptions).collapse('hide');
+let croppingSettings = {{ cropping_settings | tojson }};
+
+function drawCropGrid() {
+    console.log("drawCropGrid() called");
+    
+    // If cropping is disabled, remove any existing grid and exit.
+    if (!croppingSettings.CropEnable) {
+        console.log("Cropping disabled, grid not drawn.");
         const oldGrid = document.getElementById('cropGridOverlay');
         if (oldGrid) {
             oldGrid.remove();
         }
-    }
-}
-
-function drawCropGrid() {
-    // Get the camera feed image and crop square size input
-    const cameraImage = document.getElementById('cameraImage');
-    const cropSquareSizeInput = document.getElementById('cropSquareSize');
-    if (!cameraImage || !cropSquareSizeInput) {
         return;
     }
-
-    // Get the desired square size from settings (in pixels relative to stream resolution)
-    const desiredSquareSize = parseFloat(cropSquareSizeInput.value);
-    // On-screen height and natural height of the image
+    
+    if (!croppingSettings) {
+        console.error("Cropping settings not available");
+        return;
+    }
+    
+    const cameraImage = document.getElementById('cameraImage');
+    if (!cameraImage) return;
+    
+    const desiredSquareSize = parseFloat(croppingSettings.cropSquareSize);
+    const rows = parseInt(croppingSettings.gridRows) || 0;
+    const cols = parseInt(croppingSettings.gridColumns) || 0;
+    
+    if (isNaN(desiredSquareSize) || rows <= 0 || cols <= 0) {
+        return;
+    }
+    
     const imageHeightOnScreen = cameraImage.offsetHeight;
     const imageHeightStream = cameraImage.naturalHeight;
-
-    // Multiplier to convert stream pixels to on-screen size
     const multiplier = desiredSquareSize / imageHeightStream;
     const gridSquareSize = imageHeightOnScreen * multiplier;
-
-    // Get the number of rows and columns from the settings
-    const rows = parseInt(document.getElementById('gridRows').value) || 0;
-    const cols = parseInt(document.getElementById('gridColumns').value) || 0;
-    if (rows <= 0 || cols <= 0) {
-        return;
-    }
-
-    // Remove any existing grid overlay
-    let oldGrid = document.getElementById('cropGridOverlay');
+    
+    const oldGrid = document.getElementById('cropGridOverlay');
     if (oldGrid) {
         oldGrid.remove();
     }
-
-    // Calculate total grid dimensions based on complete cells only
+    
     const gridWidth = gridSquareSize * cols;
     const gridHeight = gridSquareSize * rows;
-
-    // Get the camera feed container (assumed to be relatively positioned)
     const container = document.querySelector('.camera-feed-container');
-
-    // Create a new overlay container for the grid with the grid's dimensions
+    
     const gridOverlay = document.createElement('div');
     gridOverlay.id = 'cropGridOverlay';
     gridOverlay.style.position = 'absolute';
-    // Center the grid overlay inside the container
     gridOverlay.style.width  = `${gridWidth}px`;
     gridOverlay.style.height = `${gridHeight}px`;
     gridOverlay.style.top    = `calc(50% - ${gridHeight / 2}px)`;
     gridOverlay.style.left   = `calc(50% - ${gridWidth / 2}px)`;
     gridOverlay.style.pointerEvents = 'none';
-    gridOverlay.style.border = '2px solid rgba(255, 0, 0, 0.7)'; // External border
-
-    // Draw internal horizontal grid lines (not including the outer border)
+    gridOverlay.style.border = '2px solid rgba(255, 0, 0, 0.7)';
+    
     for (let i = 1; i < rows; i++) {
         const hLine = document.createElement('div');
         hLine.style.position = 'absolute';
@@ -930,8 +919,6 @@ function drawCropGrid() {
         hLine.style.top = `${gridSquareSize * i}px`;
         gridOverlay.appendChild(hLine);
     }
-
-    // Draw internal vertical grid lines (not including the outer border)
     for (let j = 1; j < cols; j++) {
         const vLine = document.createElement('div');
         vLine.style.position = 'absolute';
@@ -942,39 +929,11 @@ function drawCropGrid() {
         vLine.style.left = `${gridSquareSize * j}px`;
         gridOverlay.appendChild(vLine);
     }
-
-    // Append the grid overlay to the container
+    
     container.appendChild(gridOverlay);
     console.log("drawCropGrid() multiplier:", multiplier, "gridSquareSize:", gridSquareSize, "gridWidth:", gridWidth, "gridHeight:", gridHeight);
 }
-// You can call drawCropGrid() after adjustOverlay() if cropping is enabled
-// For example, update the adjustOverlay() function:
-function adjustOverlay() {
-    const cameraImage = document.getElementById('cameraImage');
-    const overlay1 = document.getElementById('overlaySquare1');
-    const overlay2 = document.getElementById('overlaySquare2');
 
-    if (cameraImage && overlay1 && overlay2) {
-        const imageHeightOnScreen = cameraImage.offsetHeight;
-        const imageHeightStream = cameraImage.naturalHeight;
-
-        // Calculate the multiplier based on stream resolution
-        const multiplier = 224 / imageHeightStream;
-        const overlaySize = imageHeightOnScreen * multiplier;
-
-        overlay1.style.width = `${overlaySize}px`;
-        overlay1.style.height = `${overlaySize}px`;
-
-        overlay2.style.width = `${overlaySize}px`;
-        overlay2.style.height = `${overlaySize}px`;
-
-        console.log("AdjustOverlay() multiplier", multiplier, "overlaySize", overlaySize);
-    }
-    // After setting up the overlay, draw the crop grid
-    if (document.getElementById('enableCropping').checked) {
-        drawCropGrid();
-    }
-}
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM content loaded');
@@ -984,8 +943,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var rotationSettings = {{ rotation_settings | tojson }};
     var settings_from_camera = {{ settings_from_camera | tojson }};
     var capture_settings = {{ capture_settings | tojson }};
- 
-
+    var cropping_settings = {{ cropping_settings | tojson }}; 
+    
     console.log(liveSettings);
     console.log(capture_settings);
     // Call the updateUI
@@ -994,11 +953,9 @@ document.addEventListener('DOMContentLoaded', function () {
     updateUI(liveSettings);
     updateUI(rotationSettings);
     updateUI(capture_settings);
+    updateUI(cropping_settings);
     console.log(capture_settings);
-
-    // window.addEventListener('resize', drawCropGrid);
-    document.getElementById('gridRows').addEventListener('change', drawCropGrid);
-    document.getElementById('gridColumns').addEventListener('change', drawCropGrid);
+    console.log(cropping_settings);
 
 });
 
@@ -1047,10 +1004,10 @@ document.addEventListener('visibilitychange', function() {
         }
     });
 
-    const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution'];
+    const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution',];
     const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw', 'CropEnable'];
     const sliderSettings = ['LensPosition', 'ExposureValue', 'Brightness', 'Contrast', 'Saturation', 'Sharpness', 'AnalogueGain'];
-    const inputSettings = ['ExposureTime', 'AeFlickerPeriod']
+    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns'];
     const camera_num = {{ camera_num }};
     const camera_info = {{ camera_info | tojson }};
 
@@ -1132,7 +1089,7 @@ function showContent(id) {
     }
 
 function updateUI(settings) {
-    console.log("Settings object:", settings);
+    console.log("Settings object dfjklbfdkbfibehrirbfrilfbrirbeyirbrbufiurebirubr:", settings);
 
     // Ensure settings is an object
     if (typeof settings !== 'object' || settings === null) {
@@ -1142,6 +1099,12 @@ function updateUI(settings) {
     for (const key in settings) {
         if (settings.hasOwnProperty(key)) {  // Check if the key is a direct property
             console.log("Key:", key, "Value:", settings[key]);}
+        if (['CropEnable','cropSquareSize', 'gridRows', 'gridColumns'].includes(key)) {
+            console.log('UdateUI drawCrop giiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiid')
+            croppingSettings[key] = settings[key];
+            console.log(key, settings[key]);
+            drawCropGrid();
+        }
         if (checkboxSettings.includes(key)) {
                 console.log(settings[key]);
                 console.log(settings);
@@ -1239,6 +1202,7 @@ function adjustSwitchSetting(settingId) {
     const selection = inputElement.checked;
     // Update server settings
     updateLiveSettings({ [settingId]: selection });
+    updateUI({ [settingId]: selection });
     // Notify console
     console.log(settingId, 'changed:', selection);
 }

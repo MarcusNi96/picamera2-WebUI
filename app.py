@@ -315,6 +315,9 @@ class CameraObject:
             "gridRows": 3,
             "gridColumns": 3,
         }
+        self.labeling_settings = {
+            "labelingEnable": False,
+        }
         self.rotation = {
             "hflip": 0,
             "vflip": 0
@@ -404,7 +407,7 @@ class CameraObject:
          # Update only the keys that are present in the data
         print("Update Live Config !!!!!!!!!!!!!!")
         # print("controls",  self.live_config['controls'])
-        # print("capture",  self.live_config['capture-settings'])
+        print("capture",  self.live_config['cropping-settings'])
         for key in data:
             print("Key", key, "data[Key]", data[key])
             if key in self.live_config['controls']:
@@ -655,7 +658,7 @@ def control_camera(camera_num):
                 'is_selected': is_selected
             })
     if camera:
-        return render_template("camerasettings.html", title="Picamera2 WebUI - Camera <int:camera_num>", cameras_data=cameras_data, camera_num=camera_num, live_settings=camera.live_config.get('controls'), rotation_settings=camera.live_config.get('rotation'), settings_from_camera=camera.settings, capture_settings=camera.live_config.get('capture-settings'), resolutions=resolutions, enumerate=enumerate, camera_info=camera.camera_info, config_data=config_data, active_page='control_camera')
+        return render_template("camerasettings.html", title="Picamera2 WebUI - Camera <int:camera_num>", cameras_data=cameras_data, camera_num=camera_num, live_settings=camera.live_config.get('controls'), rotation_settings=camera.live_config.get('rotation'), settings_from_camera=camera.settings, capture_settings=camera.live_config.get('capture-settings'), cropping_settings=camera.live_config.get('cropping-settings'), resolutions=resolutions, enumerate=enumerate, camera_info=camera.camera_info, config_data=config_data, active_page='control_camera')
     else:
         abort(404)
 
@@ -707,7 +710,8 @@ def get_file_settings_camera(camera_num):
         response_data = {
             'live_settings': camera.live_config.get('controls'),
             'rotation_settings': camera.live_config.get('rotation'),
-            'capture_settings': camera.live_config.get('capture-settings'), 
+            'capture_settings': camera.live_config.get('capture-settings'),
+            'cropping_settings': camera.live_config.get('cropping-settings'), 
             'resolutions': camera.available_resolutions(),
             'success': True
         }
