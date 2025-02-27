@@ -220,34 +220,30 @@ class CameraObject:
         sorted_resolutions = sorted(unique_resolutions, key=lambda x: (x[0] * x[1], x))
         return sorted_resolutions
 
-    def take_photo(self, custom_prefix='', ra_value='', rz_value=''):
+    def take_photo(self):
         try:
             timestamp = int(datetime.timestamp(datetime.now()))
-            # Replace dot with comma in Ra and Rz, if present
-            if ra_value:
-                ra_value = ra_value.replace('.', ',')
-                ra_part = f"-Ra{ra_value}"
-            else:
-                ra_part = ""
-            if rz_value:
-                rz_value = rz_value.replace('.', ',')
-                rz_part = f"-Rz{rz_value}"
-            else:
-                rz_part = ""
-            # Build file name: prefix-Ra<value>-Rz<value>-pimage_cam_<Num>_<timestamp>
-            if custom_prefix:
-                image_name = f'{custom_prefix}{ra_part}{rz_part}_pimage_cam_{self.camera_info["Num"]}_{timestamp}'
-            else:
-                image_name = f'pimage_cam_{self.camera_info["Num"]}_{timestamp}'
+            image_name = f'pimage_cam_{self.camera_info["Num"]}_{timestamp}'
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
             request = self.camera.capture_request()
             request.save("main", f'{filepath}.jpg')
-            if self.live_config["capture-settings"]["makeRaw"]:
+            if self.live_config['capture-settings']["makeRaw"]:
                 request.save_dng(f'{filepath}.dng')
             request.release()
             logging.info(f"Image captured successfully. Path: {filepath}")
         except Exception as e:
             logging.error(f"Error capturing image: {e}")
+
+    def start_streaming(self):
+        self.output = StreamingOutput()
+        encoder = self.live_config['capture-settings'].get("Encoder", "MJPEGEncoder")
+        if encoder == "MJPEGEncoder":
+            self.camera.start_recording(MJPEGEncoder(), output=FileOutput(self.output))
+            time.sleep(1)
+        elif encoder == "JpegEncoder":
+            self.camera.start_recording(JpegEncoder(), output=FileOutput(self.output))
+            time.sleep(1)
+        print(f'\nStarted Stream with encoder: {encoder} \n')
         
     def start_streaming(self):
         self.output = StreamingOutput()
@@ -315,8 +311,14 @@ class CameraObject:
             "gridRows": 3,
             "gridColumns": 3,
         }
-        self.labeling_settings = {
-            "labelingEnable": False,
+        self.label_settings = {
+            "LabelEnable": False,
+            "label1key": "Ra",
+            "label1value": 0.0,
+            "label2key": "Rz",
+            "label2value": 0.0,
+            "label3key": "Vis",
+            "label3value": "nothing", 
         }
         self.rotation = {
             "hflip": 0,
@@ -346,7 +348,7 @@ class CameraObject:
         self.live_settings = {key: value for key, value in self.live_settings.items() if key in self.settings}
         self.camera.set_controls(self.live_settings)
         self.rotation_settings = self.rotation
-        self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'cropping-settings':self.cropping_settings, 'GPIO':self.gpio}
+        self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'cropping-settings':self.cropping_settings, 'label-settings':self.label_settings,  'GPIO':self.gpio}
         self.start_streaming()
         self.configure_camera()
         self.camera_info['Has_Config'] = False
@@ -408,6 +410,7 @@ class CameraObject:
         print("Update Live Config !!!!!!!!!!!!!!")
         # print("controls",  self.live_config['controls'])
         print("capture",  self.live_config['cropping-settings'])
+        print("capture",  self.live_config['label-settings'])
         for key in data:
             print("Key", key, "data[Key]", data[key])
             if key in self.live_config['controls']:
@@ -465,6 +468,18 @@ class CameraObject:
                     return success, settings
                 except Exception as e:
                     logging.error(f"Erros saving CropSettings: {e}")
+            elif key in self.live_config['label-settings']:
+                try:
+                    if key == 'LabelEnable':
+                        self.live_config['label-settings'][key] = int(data[key])
+                    else:
+                        self.live_config['label-settings'][key] = data[key]
+                    success = True
+                    settings = self.live_config['label-settings']
+                    print(f'\nUpdated live setting:\n{settings}\n')
+                    return success, settings
+                except Exception as e:
+                    logging.error(f"Erros saving LabelSettings: {e}")
             elif key in self.live_config['GPIO']:
                 if key in ('button'):
                     self.live_config['GPIO'][key] = int(data[key])
@@ -658,7 +673,7 @@ def control_camera(camera_num):
                 'is_selected': is_selected
             })
     if camera:
-        return render_template("camerasettings.html", title="Picamera2 WebUI - Camera <int:camera_num>", cameras_data=cameras_data, camera_num=camera_num, live_settings=camera.live_config.get('controls'), rotation_settings=camera.live_config.get('rotation'), settings_from_camera=camera.settings, capture_settings=camera.live_config.get('capture-settings'), cropping_settings=camera.live_config.get('cropping-settings'), resolutions=resolutions, enumerate=enumerate, camera_info=camera.camera_info, config_data=config_data, active_page='control_camera')
+        return render_template("camerasettings.html", title="Picamera2 WebUI - Camera <int:camera_num>", cameras_data=cameras_data, camera_num=camera_num, live_settings=camera.live_config.get('controls'), rotation_settings=camera.live_config.get('rotation'), settings_from_camera=camera.settings, capture_settings=camera.live_config.get('capture-settings'), cropping_settings=camera.live_config.get('cropping-settings'), label_settings=camera.live_config.get('label-settings'),resolutions=resolutions, enumerate=enumerate, camera_info=camera.camera_info, config_data=config_data, active_page='control_camera')
     else:
         abort(404)
 
@@ -711,7 +726,8 @@ def get_file_settings_camera(camera_num):
             'live_settings': camera.live_config.get('controls'),
             'rotation_settings': camera.live_config.get('rotation'),
             'capture_settings': camera.live_config.get('capture-settings'),
-            'cropping_settings': camera.live_config.get('cropping-settings'), 
+            'cropping_settings': camera.live_config.get('cropping-settings'),
+            'label_settings': camera.live_config.get('label-settings'),
             'resolutions': camera.available_resolutions(),
             'success': True
         }
@@ -747,13 +763,9 @@ def save_config_file(camera_num):
 @app.route('/capture_photo_<int:camera_num>', methods=['POST'])
 def capture_photo(camera_num):
     try:
-        data = request.get_json()
-        custom_prefix = data.get('custom_prefix', '')
-        ra_value = data.get('ra_value', '')
-        rz_value = data.get('rz_value', '')
+        cameras_data = [(camera_num, camera) for camera_num, camera in cameras.items()]
         camera = cameras.get(camera_num)
-        # Pass the new fields to take_photo
-        camera.take_photo(custom_prefix, ra_value, rz_value)
+        camera.take_photo()  # Call your take_photo function
         time.sleep(1)
         return jsonify(success=True, message="Photo captured successfully")
     except Exception as e:
