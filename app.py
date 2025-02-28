@@ -150,6 +150,7 @@ def generate_stream(camera):
         if frame:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            
 
 # CameraObject that will store the itteration of 1 or more cameras
 class CameraObject:
@@ -225,12 +226,29 @@ class CameraObject:
             timestamp = int(datetime.timestamp(datetime.now()))
             image_name = f'pimage_cam_{self.camera_info["Num"]}_{timestamp}'
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
+            # Capture the full image
             request = self.camera.capture_request()
-            request.save("main", f'{filepath}.jpg')
+            full_image_path = f'{filepath}.jpg'
+            request.save("main", full_image_path)
             if self.live_config['capture-settings']["makeRaw"]:
                 request.save_dng(f'{filepath}.dng')
             request.release()
-            logging.info(f"Image captured successfully. Path: {filepath}")
+            logging.info(f"Image captured successfully. Path: {full_image_path}")
+
+            # If cropping is enabled, perform grid cropping.
+            cropping = self.live_config.get('cropping-settings', {})
+            if cropping.get("CropEnable"):
+                from grid_crop import grid_crop
+                # Get grid parameters from config
+                rows = int(cropping.get("gridRows", 3))
+                columns = int(cropping.get("gridColumns", 3))
+                crop_square_size = int(cropping.get("cropSquareSize", 224))
+                # Create a folder for cropped images (e.g., same folder as uploads with a 'cropped' subfolder)
+                cropped_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], "cropped")
+                os.makedirs(cropped_output_dir, exist_ok=True)
+                metadata = grid_crop(full_image_path, cropped_output_dir, rows, columns, crop_square_size, self.live_config.get('label-settings'))
+                logging.info(f"Grid cropping completed. Metadata: {metadata}")
+            
         except Exception as e:
             logging.error(f"Error capturing image: {e}")
 
@@ -318,7 +336,7 @@ class CameraObject:
             "label2key": "Rz",
             "label2value": 0.0,
             "label3key": "Vis",
-            "label3value": "nothing", 
+            "label3value": "null", 
         }
         self.rotation = {
             "hflip": 0,
