@@ -244,6 +244,17 @@ class CameraObject:
             self.camera.start_recording(JpegEncoder(), output=FileOutput(self.output))
             time.sleep(1)
         print(f'\nStarted Stream with encoder: {encoder} \n')
+        
+    def start_streaming(self):
+        self.output = StreamingOutput()
+        encoder = self.live_config['capture-settings'].get("Encoder", "MJPEGEncoder")
+        if encoder == "MJPEGEncoder":
+            self.camera.start_recording(MJPEGEncoder(), output=FileOutput(self.output))
+            time.sleep(1)
+        elif encoder == "JpegEncoder":
+            self.camera.start_recording(JpegEncoder(), output=FileOutput(self.output))
+            time.sleep(1)
+        print(f'\nStarted Stream with encoder: {encoder} \n')
 
     def stop_streaming(self):
         self.camera.stop_recording()
@@ -294,6 +305,21 @@ class CameraObject:
             "Resolution": 0,
             "Encoder": "MJPEGEncoder"
         }
+        self.cropping_settings = {
+            "CropEnable": False,
+            "cropSquareSize": 224,
+            "gridRows": 3,
+            "gridColumns": 3,
+        }
+        self.label_settings = {
+            "LabelEnable": False,
+            "label1key": "Ra",
+            "label1value": 0.0,
+            "label2key": "Rz",
+            "label2value": 0.0,
+            "label3key": "Vis",
+            "label3value": "nothing", 
+        }
         self.rotation = {
             "hflip": 0,
             "vflip": 0
@@ -322,7 +348,7 @@ class CameraObject:
         self.live_settings = {key: value for key, value in self.live_settings.items() if key in self.settings}
         self.camera.set_controls(self.live_settings)
         self.rotation_settings = self.rotation
-        self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'GPIO':self.gpio}
+        self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'cropping-settings':self.cropping_settings, 'label-settings':self.label_settings,  'GPIO':self.gpio}
         self.start_streaming()
         self.configure_camera()
         self.camera_info['Has_Config'] = False
@@ -381,7 +407,12 @@ class CameraObject:
 
     def update_live_config(self, data):
          # Update only the keys that are present in the data
+        print("Update Live Config !!!!!!!!!!!!!!")
+        # print("controls",  self.live_config['controls'])
+        print("capture",  self.live_config['cropping-settings'])
+        print("capture",  self.live_config['label-settings'])
         for key in data:
+            print("Key", key, "data[Key]", data[key])
             if key in self.live_config['controls']:
                 try:
                     if key in ('AfMode', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeFlickerPeriod', 'AeMeteringMode', 'AfRange', 'AfSpeed', 'AwbMode', 'ExposureTime') :
@@ -425,6 +456,30 @@ class CameraObject:
                     self.start_streaming()
                     success = True
                     return success, settings
+            elif key in self.live_config['cropping-settings']:
+                try:
+                    if key == 'CropEnable':
+                        self.live_config['cropping-settings'][key] = int(data[key])
+                    elif key in ('gridRows', 'gridColumns', 'cropSquareSize'): 
+                        self.live_config['cropping-settings'][key] = int(data[key])
+                    success = True
+                    settings = self.live_config['cropping-settings']
+                    print(f'\nUpdated live setting:\n{settings}\n')
+                    return success, settings
+                except Exception as e:
+                    logging.error(f"Erros saving CropSettings: {e}")
+            elif key in self.live_config['label-settings']:
+                try:
+                    if key == 'LabelEnable':
+                        self.live_config['label-settings'][key] = int(data[key])
+                    else:
+                        self.live_config['label-settings'][key] = data[key]
+                    success = True
+                    settings = self.live_config['label-settings']
+                    print(f'\nUpdated live setting:\n{settings}\n')
+                    return success, settings
+                except Exception as e:
+                    logging.error(f"Erros saving LabelSettings: {e}")
             elif key in self.live_config['GPIO']:
                 if key in ('button'):
                     self.live_config['GPIO'][key] = int(data[key])
@@ -618,7 +673,7 @@ def control_camera(camera_num):
                 'is_selected': is_selected
             })
     if camera:
-        return render_template("camerasettings.html", title="Picamera2 WebUI - Camera <int:camera_num>", cameras_data=cameras_data, camera_num=camera_num, live_settings=camera.live_config.get('controls'), rotation_settings=camera.live_config.get('rotation'), settings_from_camera=camera.settings, capture_settings=camera.live_config.get('capture-settings'), resolutions=resolutions, enumerate=enumerate, camera_info=camera.camera_info, config_data=config_data, active_page='control_camera')
+        return render_template("camerasettings.html", title="Picamera2 WebUI - Camera <int:camera_num>", cameras_data=cameras_data, camera_num=camera_num, live_settings=camera.live_config.get('controls'), rotation_settings=camera.live_config.get('rotation'), settings_from_camera=camera.settings, capture_settings=camera.live_config.get('capture-settings'), cropping_settings=camera.live_config.get('cropping-settings'), label_settings=camera.live_config.get('label-settings'),resolutions=resolutions, enumerate=enumerate, camera_info=camera.camera_info, config_data=config_data, active_page='control_camera')
     else:
         abort(404)
 
@@ -670,7 +725,9 @@ def get_file_settings_camera(camera_num):
         response_data = {
             'live_settings': camera.live_config.get('controls'),
             'rotation_settings': camera.live_config.get('rotation'),
-            'capture_settings': camera.live_config.get('capture-settings'), 
+            'capture_settings': camera.live_config.get('capture-settings'),
+            'cropping_settings': camera.live_config.get('cropping-settings'),
+            'label_settings': camera.live_config.get('label-settings'),
             'resolutions': camera.available_resolutions(),
             'success': True
         }

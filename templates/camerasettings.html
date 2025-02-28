@@ -7,7 +7,10 @@
         <div class="col-lg-8 pt-5">
             <!-- ###### Main Content ###### -->
             <h2 class="pt-4 pb-2 mb-4 border-bottom">Camera Feed</h2>
-            <img class="img-fluid" id="cameraImage" alt="Camera Feed">
+            <!-- <img class="img-fluid" id="cameraImage" alt="Camera Feed"> -->
+            <div class="camera-feed-container" style="position: relative; display: inline-block;">
+                <img class="img-fluid" id="cameraImage" alt="Camera Feed" onload="drawCropGrid()">
+            </div>
             <div class="pt-3 row">
                 <div class="d-grid gap-2 col-4 mx-auto">
                     <button type="button" class="btn btn-primary btn-success btn-lg" id="captureButton" onclick="capturePhoto()">Capture Image</button>
@@ -602,6 +605,97 @@
                     </div>
                 </div>
 
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCroppingSettings" aria-expanded="false" aria-controls="collapseCroppingSettings">
+                            Cropping Settings
+                        </button>
+                    </h2>
+                    <div id="collapseCroppingSettings" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                        <div class="accordion-body">
+                            <!-- Enable Cropping -->
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="CropEnable" onchange="adjustSwitchSetting('CropEnable')">
+                                <label class="form-check-label" for="CropEnable">Enable Cropping</label>
+                            </div>
+                            <!-- Cropping Options (always shown) -->
+                            <div class="p-2" id="CroppingOptions">
+                                <div class="mb-3">
+                                    <label for="cropSquareSize" class="form-label">Square Size (pixels)</label>
+                                    <input type="number" class="form-control" id="cropSquareSize" min="1" max="10000" step="1" onchange="adjustNumericSetting('cropSquareSize')">
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="gridRows" class="form-label">Rows</label>
+                                        <input type="number" class="form-control" id="gridRows" min="1" max="100" step="1" onchange="adjustNumericSetting('gridRows')">
+                                    </div>
+                                    <div class="col">
+                                        <label for="gridColumns" class="form-label">Columns</label>
+                                        <input type="number" class="form-control" id="gridColumns" min="1" max="100" step="1" onchange="adjustNumericSetting('gridColumns')">
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted mt-2">
+                                    When enabled, the captured image will be cropped into a grid of squares as specified and the files will be saved in a "cropped" folder.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLabelSettings" aria-expanded="false" aria-controls="collapseLabelSettings">
+                            Label Settings
+                        </button>
+                    </h2>
+                    <div id="collapseLabelSettings" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                        <div class="accordion-body">
+                            <!-- Enable Label -->
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="LabelEnable" onchange="adjustSwitchSetting('LabelEnable')">
+                                <label class="form-check-label" for="CropEnable">Enable Labeling</label>
+                            </div>
+                            <!-- Label Options (always shown) -->
+                            <div class="p-2" id="CroppingOptions">
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="label1key class="form-label">Label</label>
+                                        <input type="text" class="form-control" id="label1key" onchange="adjustTextSetting('label1key')">
+                                    </div>
+                                    <div class="col">
+                                        <label for="label1value class="form-label">Value</label>
+                                        <input type="number" class="form-control" id="label1value" min="0" max="100" onchange="adjustNumericSetting('label1value')">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="label2key class="form-label">Label</label>
+                                        <input type="text" class="form-control" id="label2key" onchange="adjustTextSetting('label2key')">
+                                    </div>
+                                    <div class="col">
+                                        <label for="label2value class="form-label">Value</label>
+                                        <input type="number" class="form-control" id="label2value" min="0" max="100" onchange="adjustNumericSetting('label2value')">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="label3key class="form-label">Label</label>
+                                        <input type="text" class="form-control" id="label3key" onchange="adjustTextSetting('label3key')">
+                                    </div>
+                                    <div class="col">
+                                        <label for="label3value class="form-label">Class</label>
+                                        <input type="text"  id="label3value" class="form-control" onchange="adjustTextSetting('label3value')">
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted mt-2">
+                                    Labels will be added to filname
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
 
                 <!-- ###### ScalerCrop Settings ###### 
                 <div class="accordion-item">
@@ -811,6 +905,87 @@
 
 <script>
 
+let croppingSettings = {{ cropping_settings | tojson }};
+
+function drawCropGrid() {
+    console.log("drawCropGrid() called");
+    
+    // If cropping is disabled, remove any existing grid and exit.
+    if (!croppingSettings.CropEnable) {
+        console.log("Cropping disabled, grid not drawn.");
+        const oldGrid = document.getElementById('cropGridOverlay');
+        if (oldGrid) {
+            oldGrid.remove();
+        }
+        return;
+    }
+    
+    if (!croppingSettings) {
+        console.error("Cropping settings not available");
+        return;
+    }
+    
+    const cameraImage = document.getElementById('cameraImage');
+    if (!cameraImage) return;
+    
+    const desiredSquareSize = parseFloat(croppingSettings.cropSquareSize);
+    const rows = parseInt(croppingSettings.gridRows) || 0;
+    const cols = parseInt(croppingSettings.gridColumns) || 0;
+    
+    if (isNaN(desiredSquareSize) || rows <= 0 || cols <= 0) {
+        return;
+    }
+    
+    const imageHeightOnScreen = cameraImage.offsetHeight;
+    const imageHeightStream = cameraImage.naturalHeight;
+    const multiplier = desiredSquareSize / imageHeightStream;
+    const gridSquareSize = imageHeightOnScreen * multiplier;
+    
+    const oldGrid = document.getElementById('cropGridOverlay');
+    if (oldGrid) {
+        oldGrid.remove();
+    }
+    
+    const gridWidth = gridSquareSize * cols;
+    const gridHeight = gridSquareSize * rows;
+    const container = document.querySelector('.camera-feed-container');
+    
+    const gridOverlay = document.createElement('div');
+    gridOverlay.id = 'cropGridOverlay';
+    gridOverlay.style.position = 'absolute';
+    gridOverlay.style.width  = `${gridWidth}px`;
+    gridOverlay.style.height = `${gridHeight}px`;
+    gridOverlay.style.top    = `calc(50% - ${gridHeight / 2}px)`;
+    gridOverlay.style.left   = `calc(50% - ${gridWidth / 2}px)`;
+    gridOverlay.style.pointerEvents = 'none';
+    gridOverlay.style.border = '2px solid rgba(255, 0, 0, 0.7)';
+    
+    for (let i = 1; i < rows; i++) {
+        const hLine = document.createElement('div');
+        hLine.style.position = 'absolute';
+        hLine.style.left = '0';
+        hLine.style.width = '100%';
+        hLine.style.height = '1px';
+        hLine.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+        hLine.style.top = `${gridSquareSize * i}px`;
+        gridOverlay.appendChild(hLine);
+    }
+    for (let j = 1; j < cols; j++) {
+        const vLine = document.createElement('div');
+        vLine.style.position = 'absolute';
+        vLine.style.top = '0';
+        vLine.style.height = '100%';
+        vLine.style.width = '1px';
+        vLine.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+        vLine.style.left = `${gridSquareSize * j}px`;
+        gridOverlay.appendChild(vLine);
+    }
+    
+    container.appendChild(gridOverlay);
+    console.log("drawCropGrid() multiplier:", multiplier, "gridSquareSize:", gridSquareSize, "gridWidth:", gridWidth, "gridHeight:", gridHeight);
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM content loaded');
 
@@ -819,8 +994,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var rotationSettings = {{ rotation_settings | tojson }};
     var settings_from_camera = {{ settings_from_camera | tojson }};
     var capture_settings = {{ capture_settings | tojson }};
- 
-
+    var cropping_settings = {{ cropping_settings | tojson }};
+    var label_settings = {{ label_settings | tojson }};  
+    
     console.log(liveSettings);
     console.log(capture_settings);
     // Call the updateUI
@@ -829,7 +1005,10 @@ document.addEventListener('DOMContentLoaded', function () {
     updateUI(liveSettings);
     updateUI(rotationSettings);
     updateUI(capture_settings);
+    updateUI(cropping_settings);
+    updateUI(label_settings);
     console.log(capture_settings);
+    console.log(cropping_settings);
 
 });
 
@@ -878,10 +1057,10 @@ document.addEventListener('visibilitychange', function() {
         }
     });
 
-    const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution'];
-    const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw'];
+    const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution',];
+    const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw', 'CropEnable', 'LabelEnable'];
     const sliderSettings = ['LensPosition', 'ExposureValue', 'Brightness', 'Contrast', 'Saturation', 'Sharpness', 'AnalogueGain'];
-    const inputSettings = ['ExposureTime', 'AeFlickerPeriod']
+    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value'];
     const camera_num = {{ camera_num }};
     const camera_info = {{ camera_info | tojson }};
 
@@ -963,7 +1142,7 @@ function showContent(id) {
     }
 
 function updateUI(settings) {
-    console.log("Settings object:", settings);
+    console.log("Settings object dfjklbfdkbfibehrirbfrilfbrirbeyirbrbufiurebirubr:", settings);
 
     // Ensure settings is an object
     if (typeof settings !== 'object' || settings === null) {
@@ -973,6 +1152,11 @@ function updateUI(settings) {
     for (const key in settings) {
         if (settings.hasOwnProperty(key)) {  // Check if the key is a direct property
             console.log("Key:", key, "Value:", settings[key]);}
+        if (['CropEnable','cropSquareSize', 'gridRows', 'gridColumns'].includes(key)) {
+            croppingSettings[key] = settings[key];
+            console.log(key, settings[key]);
+            drawCropGrid();
+        }
         if (checkboxSettings.includes(key)) {
                 console.log(settings[key]);
                 console.log(settings);
@@ -1070,6 +1254,7 @@ function adjustSwitchSetting(settingId) {
     const selection = inputElement.checked;
     // Update server settings
     updateLiveSettings({ [settingId]: selection });
+    updateUI({ [settingId]: selection });
     // Notify console
     console.log(settingId, 'changed:', selection);
 }
@@ -1113,6 +1298,24 @@ function adjustNumericSetting(settingId) {
         inputElement.classList.add('is-invalid');
     } else {
         // Remove 'invalid' class and error message div if they exist
+        inputElement.classList.remove('is-invalid');
+        // Update UI and server settings
+        updateUI({ [settingId]: setValue });
+        updateLiveSettings({ [settingId]: setValue });
+    }
+}
+
+function adjustTextSetting(settingId) {
+    // Handle the input change here
+    const inputElement = document.getElementById(settingId);
+    const setValue = inputElement.value; // Get the input value as a string
+
+    // Check if the entered value is a valid string (non-empty)
+    if (setValue.trim() === "") {
+        // Add 'invalid' class to the input element
+        inputElement.classList.add('is-invalid');
+    } else {
+        // Remove 'invalid' class if it exists
         inputElement.classList.remove('is-invalid');
         // Update UI and server settings
         updateUI({ [settingId]: setValue });

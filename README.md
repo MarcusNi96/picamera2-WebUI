@@ -1,5 +1,5 @@
 # Picamera2 WebUI
-
+This is a fork that i will use for dataset collection for my masters thesis. I will do machine learning on pictures of surfaces, hence why I am cropping images in a grid to get the biggest possible dataset from my images.
 ## Overview
 
 Picamera2 WebUI is a lightweight web interface for the Raspberry Pi camera module, built on the Picamera2 Python library and using Flask. This project provides a user interface to configure camera settings, capture photos, and manage images in a basic gallery.
