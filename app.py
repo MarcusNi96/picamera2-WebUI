@@ -364,6 +364,7 @@ class CameraObject:
         self.camera.configure(self.video_config)
         # Pull default settings and filter live_settings for anything picamera2 wont use (because the not all cameras use all settings)
         self.live_settings = {key: value for key, value in self.live_settings.items() if key in self.settings}
+        self.live_settings["FrameDurationLimits"] = (1000000, 1000000)
         self.camera.set_controls(self.live_settings)
         self.rotation_settings = self.rotation
         self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'cropping-settings':self.cropping_settings, 'label-settings':self.label_settings,  'GPIO':self.gpio}
