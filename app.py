@@ -338,6 +338,7 @@ class CameraObject:
             "label2value": 0.0,
             "label3key": "Vis",
             "label3value": "null", 
+            "resolutionCalibration": 0.0,
         }
         self.rotation = {
             "hflip": 0,

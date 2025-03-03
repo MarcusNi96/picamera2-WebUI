@@ -687,6 +687,14 @@
                                         <input type="text"  id="label3value" class="form-control" onchange="adjustTextSetting('label3value')">
                                     </div>
                                 </div>
+                                <!-- Add Resolution Calibration input -->
+                                <div class="row">
+                                    <label for="resolutionCalibration" class="form-label">Resolution Calibration (µm/pixel)</label>
+                                    <input type="number" class="form-control" id="resolutionCalibration" step="0.01" placeholder="e.g., 1.4" onchange="adjustNumericSetting('resolutionCalibration')">
+                                    <small class="form-text text-muted">
+                                        Enter the calibration factor in micrometers per pixel.
+                                    </small>
+                                </div>
                                 <small class="form-text text-muted mt-2">
                                     Labels will be added to JSON. Value will not be updated before you click ouside the input field.
                                 </small>
@@ -1068,7 +1076,7 @@ document.addEventListener('visibilitychange', function() {
     const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution',];
     const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw', 'CropEnable', 'LabelEnable'];
     const sliderSettings = ['LensPosition', 'ExposureValue', 'Brightness', 'Contrast', 'Saturation', 'Sharpness', 'AnalogueGain'];
-    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'FPS', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value'];
+    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'FPS', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value', 'resolutionCalibration'];
     const camera_num = {{ camera_num }};
     const camera_info = {{ camera_info | tojson }};
 
