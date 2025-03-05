@@ -653,7 +653,7 @@
                             <!-- Enable Label -->
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" role="switch" id="LabelEnable" onchange="adjustSwitchSetting('LabelEnable')">
-                                <label class="form-check-label" for="CropEnable">Enable Labeling</label>
+                                <label class="form-check-label" for="LabelEnable">Enable Labeling</label>
                             </div>
                             <!-- Label Options (always shown) -->
                             <div class="p-2" id="CroppingOptions">
@@ -687,14 +687,74 @@
                                         <input type="text"  id="label3value" class="form-control" onchange="adjustTextSetting('label3value')">
                                     </div>
                                 </div>
+
+                                <!-- Add Resolution Calibration input -->
+                                <div class="row">
+                                    <label for="resolutionCalibration" class="form-label">Resolution Calibration (µm/pixel)</label>
+                                    <input type="number" class="form-control" id="resolutionCalibration" step="0.01" placeholder="e.g., 1.4" onchange="adjustNumericSetting('resolutionCalibration')">
+                                    <small class="form-text text-muted">
+                                        Enter the calibration factor in micrometers per pixel.
+                                    </small>
+                                </div>
+                                
+'                               <!-- Enable Label -->
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="LabelTurningEnable" onchange="adjustSwitchSetting('LabelTurningEnable')">
+                                    <label class="form-check-label" for="LabelTurningEnable">Enable Labeling of Turning Parameters</label>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="depthOfCut" class="form-label">Depth Of Cut</label>
+                                        <input type="number" class="form-control" id="depthOfCut" onchange="adjustNumericSetting('depthOfCut')">
+                                    </div>
+                                    <div class="col">
+                                        <label for="feed" class="form-label">Feed per Rotation</label>
+                                        <input type="number" class="form-control" id="feed" onchange="adjustNumericSetting('feed')">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="turningDiameter" class="form-label">Diameter</label>
+                                        <input type="number" class="form-control" id="turningDiameter" onchange="adjustNumericSetting('turningDiameter')">
+                                    </div>
+                                    <div class="col">
+                                        <label for="rpm" class="form-label">RPM</label>
+                                        <input type="number" class="form-control" id="rpm" onchange="adjustNumericSetting('rpm')">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="tipRadius" class="form-label">Insert Radius</label>
+                                        <input type="number" class="form-control" id="tipRadius" onchange="adjustNumericSetting('tipRadius')">
+                                    </div>
+                                </div>
+
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="turningOperation" id="turningOperation0" onclick="adjustCheckboxSetting('turningOperation', '0')">
+                                    <label class="form-check-label" for="turningOperation0">Internal</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="turningOperation" id="turningOperation1" onclick="adjustCheckboxSetting('turningOperation', '1')">
+                                    <label class="form-check-label" for="turningOperation1">External</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="turningOperation" id="turningOperation2" onclick="adjustCheckboxSetting('turningOperation', '2')">
+                                    <label class="form-check-label" for="turningOperation2">Facing</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="turningOperation" id="turningOperation3" onclick="adjustCheckboxSetting('turningOperation', '3')">
+                                    <label class="form-check-label" for="turningOperation3">Other</label>
+                                </div>
+
                                 <small class="form-text text-muted mt-2">
                                     Labels will be added to JSON. Value will not be updated before you click ouside the input field.
                                 </small>
                             </div>
                         </div>
                     </div>
-                </div>
-
+               
 
 
                 <!-- ###### ScalerCrop Settings ###### 
@@ -752,45 +812,54 @@
                         </div>
                     </div>
                 </div> -->
-                            <!-- ###### Camera Capture Settings ###### -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
-                                            Camera Capture Settings
-                                        </button>
-                                    </h2>
-                                    <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-                                        <div class="accordion-body">
-                                            <!-- Resolution -->
-                                            <div class="d-flex w-100 align-items-center justify-content-between">
-                                                <strong class="mb-1"><label for="capture" class="form-label mb-0" id="currentCapture">Select Feed/Capture Resolution:</label></strong>
-                                                    <a data-bs-toggle="collapse" href="#capture_info" role="button">
-                                                    <i class="bi bi-info-circle"></i></a>
-                                            </div>
-                                            <div class="collapse p-2" id="capture_info">
-                                                <div class="card card-body">
-                                                        <p class="mb-0">Capture resolution is a up or downscaling of the feed from the camera module. If you wish to change the source resoltuion you need to goto Camera Info and change the sensor mode.</p>
-                                                </div>
-                                              </div>
-                                            {% for i, resolution in enumerate(resolutions) %}
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="Resolution" id="Resolution{{ i }}" onclick="adjustResolution('Resolution', '{{ i }}',{{ resolution[0] }}, {{ resolution[1] }})">
-                                                <label class="form-check-label" for="Resolution{{ i }}">{{ resolution[0] }}x{{ resolution[1] }}</label>
-                                            </div>
-                                            {% endfor %}
-                                        <hr></hr>
-                                            <!-- Make Raw -->
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" role="switch" id="makeRaw" onchange="adjustSwitchSetting('makeRaw')">
-                                                <label for="makeRaw" >Enable: Save Raw Image</label>
-                                            </div>
-                                            <!-- End of Line-->
-                                        </div>
+                <!-- ###### Camera Capture Settings ###### -->
+             
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
+                                    Camera Capture Settings
+                                </button>
+                            </h2>
+                            <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                                <div class="accordion-body">
+                                    <!-- Resolution -->
+                                    <div class="d-flex w-100 align-items-center justify-content-between">
+                                        <strong class="mb-1"><label for="capture" class="form-label mb-0" id="currentCapture">Select Feed/Capture Resolution:</label></strong>
+                                            <a data-bs-toggle="collapse" href="#capture_info" role="button">
+                                            <i class="bi bi-info-circle"></i></a>
                                     </div>
+                                    <div class="collapse p-2" id="capture_info">
+                                        <div class="card card-body">
+                                                <p class="mb-0">Capture resolution is a up or downscaling of the feed from the camera module. If you wish to change the source resoltuion you need to goto Camera Info and change the sensor mode.</p>
+                                        </div>
+                                        </div>
+                                    {% for i, resolution in enumerate(resolutions) %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="Resolution" id="Resolution{{ i }}" onclick="adjustResolution('Resolution', '{{ i }}',{{ resolution[0] }}, {{ resolution[1] }})">
+                                        <label class="form-check-label" for="Resolution{{ i }}">{{ resolution[0] }}x{{ resolution[1] }}</label>
+                                    </div>
+                                    {% endfor %}
+                                <hr></hr>
+                                    <!-- Make Raw -->
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="makeRaw" onchange="adjustSwitchSetting('makeRaw')">
+                                        <label for="makeRaw" >Enable: Save Raw Image</label>
+                                    </div>
+                                    <!-- Add FPS setting input -->
+                                    <div class="mb-3">
+                                        <label for="FPS" class="form-label">Frame Rate (FPS)</label>
+                                        <input type="number" class="form-control" id="FPS" min="1" max="30" step="1" onchange="adjustNumericSetting('FPS')">
+                                        <small class="form-text text-muted">
+                                            Set the frames-per-second rate. Lower values (e.g. 1) help performance.
+                                        </small>
+                                    </div>
+                                    <!-- End of Line-->
                                 </div>
+                            </div>
+                        </div>
                        
 
-            </div>
+            
             <ul class="list-group pt-3">
                 <li class="list-group-item active" aria-current="true">Settings Controls</li>
                 <li class="list-group-item">
@@ -1057,10 +1126,10 @@ document.addEventListener('visibilitychange', function() {
         }
     });
 
-    const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution',];
-    const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw', 'CropEnable', 'LabelEnable'];
+    const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution','turningOperation'];
+    const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw', 'CropEnable', 'LabelEnable', 'LabelTurningEnable'];
     const sliderSettings = ['LensPosition', 'ExposureValue', 'Brightness', 'Contrast', 'Saturation', 'Sharpness', 'AnalogueGain'];
-    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value'];
+    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'FPS', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value', 'resolutionCalibration', 'depthOfCut', 'feed', 'turningDiameter', 'rpm', 'tipRadius'];
     const camera_num = {{ camera_num }};
     const camera_info = {{ camera_info | tojson }};
 

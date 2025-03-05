@@ -235,19 +235,16 @@ class CameraObject:
             request.release()
             logging.info(f"Image captured successfully. Path: {full_image_path}")
 
-            # If cropping is enabled, perform grid cropping.
             cropping = self.live_config.get('cropping-settings', {})
-            if cropping.get("CropEnable"):
-                from grid_crop import grid_crop
-                # Get grid parameters from config
-                rows = int(cropping.get("gridRows", 3))
-                columns = int(cropping.get("gridColumns", 3))
-                crop_square_size = int(cropping.get("cropSquareSize", 224))
-                # Create a folder for cropped images (e.g., same folder as uploads with a 'cropped' subfolder)
-                cropped_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], "cropped")
-                os.makedirs(cropped_output_dir, exist_ok=True)
-                metadata = grid_crop(full_image_path, cropped_output_dir, rows, columns, crop_square_size, self.live_config.get('label-settings'))
-                logging.info(f"Grid cropping completed. Metadata: {metadata}")
+            label = self.live_config.get('label-settings', {})
+
+            data_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], "data")
+            os.makedirs(data_output_dir, exist_ok=True)
+
+            from process_for_storage import process_for_storage
+            metadata = process_for_storage(full_image_path, cropping, label, data_output_dir)
+            logging.info(f"Grid cropping completed. Metadata: {metadata}")
+
             
         except Exception as e:
             logging.error(f"Error capturing image: {e}")
@@ -321,7 +318,8 @@ class CameraObject:
             "Resize": False,
             "makeRaw": False,
             "Resolution": 0,
-            "Encoder": "MJPEGEncoder"
+            "Encoder": "MJPEGEncoder",
+            "FPS": 1    # <-- Added FPS with default 1
         }
         self.cropping_settings = {
             "CropEnable": False,
@@ -330,13 +328,21 @@ class CameraObject:
             "gridColumns": 3,
         }
         self.label_settings = {
-            "LabelEnable": False,
+            "LabelEnable": 0,
             "label1key": "Ra",
             "label1value": 0.0,
             "label2key": "Rz",
             "label2value": 0.0,
             "label3key": "Vis",
             "label3value": "null", 
+            "resolutionCalibration": 0.0,
+            "LabelTurningEnable": 0,
+            "depthOfCut": 0,
+            "feed": 0,
+            "turningDiameter": 0,
+            "rpm": 0,
+            "tipRadius": 0,
+            "turningOperation": 0
         }
         self.rotation = {
             "hflip": 0,
@@ -356,17 +362,30 @@ class CameraObject:
         print(f'\nCamera Settings:\n{self.capture_settings}\n')
         print(f'\nCamera Set Resolution:\n{resolution}\n')
         self.stop_streaming()
-        # Get the sensor modes and pick from the the camera_config
         mode = self.camera.sensor_modes[self.sensor_mode]
         print(f'\nSensor Mode Config:\n{mode}\n')
-        self.video_config = self.camera.create_video_configuration(main={'size':resolution}, sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
+        self.video_config = self.camera.create_video_configuration(
+            main={'size': resolution},
+            sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']}
+        )
         print(f'\nVideo Config:\n{self.video_config}\n')
         self.camera.configure(self.video_config)
-        # Pull default settings and filter live_settings for anything picamera2 wont use (because the not all cameras use all settings)
+        # Filter live_settings for controls that the camera uses
         self.live_settings = {key: value for key, value in self.live_settings.items() if key in self.settings}
+        # Set frame duration limits based on FPS
+        fps = self.capture_settings.get("FPS", 1)
+        self.live_settings["FrameDurationLimits"] = (int(1000000/fps), int(1000000/fps))
         self.camera.set_controls(self.live_settings)
         self.rotation_settings = self.rotation
-        self.live_config = {'controls':self.live_settings, 'rotation':self.rotation, 'sensor-mode':int(self.sensor_mode), 'capture-settings':self.capture_settings, 'cropping-settings':self.cropping_settings, 'label-settings':self.label_settings,  'GPIO':self.gpio}
+        self.live_config = {
+            'controls': self.live_settings,
+            'rotation': self.rotation,
+            'sensor-mode': int(self.sensor_mode),
+            'capture-settings': self.capture_settings,
+            'cropping-settings': self.cropping_settings,
+            'label-settings': self.label_settings,
+            'GPIO': self.gpio
+        }
         self.start_streaming()
         self.configure_camera()
         self.camera_info['Has_Config'] = False
@@ -424,23 +443,20 @@ class CameraObject:
             return None  # Return None or raise an exception on failure
 
     def update_live_config(self, data):
-         # Update only the keys that are present in the data
+        # Update only the keys that are present in the data
         print("Update Live Config !!!!!!!!!!!!!!")
-        # print("controls",  self.live_config['controls'])
         print("capture",  self.live_config['cropping-settings'])
         print("capture",  self.live_config['label-settings'])
         for key in data:
             print("Key", key, "data[Key]", data[key])
             if key in self.live_config['controls']:
                 try:
-                    if key in ('AfMode', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeFlickerPeriod', 'AeMeteringMode', 'AfRange', 'AfSpeed', 'AwbMode', 'ExposureTime') :
+                    if key in ('AfMode', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeFlickerPeriod', 'AeMeteringMode', 'AfRange', 'AfSpeed', 'AwbMode', 'ExposureTime'):
                         self.live_config['controls'][key] = int(data[key])
                     elif key in ('Brightness', 'Contrast', 'Saturation', 'Sharpness', 'ExposureValue', 'LensPosition', 'AnalogueGain'):
                         self.live_config['controls'][key] = float(data[key])
                     elif key in ('AeEnable', 'AwbEnable', 'ScalerCrop'):
                         self.live_config['controls'][key] = data[key]
-                    # Update the configuration of the video feed
-                    
                     success = True
                     settings = self.live_config['controls']
                     print(f'\nUpdated live setting:\n{settings}\n')
@@ -454,7 +470,10 @@ class CameraObject:
                     resolution = self.output_resolutions[selected_resolution]
                     mode = self.camera.sensor_modes[self.sensor_mode]
                     self.stop_streaming()
-                    self.video_config = self.camera.create_video_configuration(main={'size':resolution}, sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
+                    self.video_config = self.camera.create_video_configuration(
+                        main={'size': resolution},
+                        sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']}
+                    )
                     self.camera.configure(self.video_config)
                     self.apply_rotation(self.live_config['rotation'])
                     self.start_streaming()
@@ -468,11 +487,18 @@ class CameraObject:
                     return success, settings
                 elif key == 'Encoder':
                     self.live_config['capture-settings'][key] = data[key]
-                    settings = self.live_config['capture-settings']
                     self.stop_streaming()
                     time.sleep(1)
                     self.start_streaming()
                     success = True
+                    settings = self.live_config['capture-settings']
+                    return success, settings
+                elif key == 'FPS':    # <-- New branch for FPS
+                    self.live_config['capture-settings'][key] = int(data[key])
+                    fps = int(data[key])
+                    self.live_settings["FrameDurationLimits"] = (int(1000000/fps), int(1000000/fps))
+                    success = True
+                    settings = self.live_config['capture-settings']
                     return success, settings
             elif key in self.live_config['cropping-settings']:
                 try:
@@ -488,7 +514,7 @@ class CameraObject:
                     logging.error(f"Erros saving CropSettings: {e}")
             elif key in self.live_config['label-settings']:
                 try:
-                    if key == 'LabelEnable':
+                    if key == 'LabelEnable' or key == 'LabelTurningEnable':
                         self.live_config['label-settings'][key] = int(data[key])
                     else:
                         self.live_config['label-settings'][key] = data[key]
@@ -523,11 +549,12 @@ class CameraObject:
                 self.live_config['sensor-mode'] = int(data[key])
                 self.stop_streaming()
                 try:
-                    self.video_config = self.camera.create_video_configuration(main={'size':resolution}, sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']})
+                    self.video_config = self.camera.create_video_configuration(
+                        main={'size': resolution},
+                        sensor={'output_size': mode['size'], 'bit_depth': mode['bit_depth']}
+                    )
                     self.apply_rotation(self.live_config['rotation'])
-
                 except Exception as e:
-                    # Log the exception
                     logging.error("An error occurred while configuring the camera: %s", str(e))
                     print(f"\nAn error occurred:\n{str(e)}\n")
                 self.camera.configure(self.video_config)
@@ -536,7 +563,6 @@ class CameraObject:
                 success = True
                 settings = self.live_config['sensor-mode']
                 return success, settings
-        
 
     def apply_rotation(self,data):
         self.stop_streaming()
