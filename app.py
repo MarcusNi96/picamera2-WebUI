@@ -235,19 +235,16 @@ class CameraObject:
             request.release()
             logging.info(f"Image captured successfully. Path: {full_image_path}")
 
-            # If cropping is enabled, perform grid cropping.
             cropping = self.live_config.get('cropping-settings', {})
-            if cropping.get("CropEnable"):
-                from grid_crop import grid_crop
-                # Get grid parameters from config
-                rows = int(cropping.get("gridRows", 3))
-                columns = int(cropping.get("gridColumns", 3))
-                crop_square_size = int(cropping.get("cropSquareSize", 224))
-                # Create a folder for cropped images (e.g., same folder as uploads with a 'cropped' subfolder)
-                cropped_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], "cropped")
-                os.makedirs(cropped_output_dir, exist_ok=True)
-                metadata = grid_crop(full_image_path, cropped_output_dir, rows, columns, crop_square_size, self.live_config.get('label-settings'))
-                logging.info(f"Grid cropping completed. Metadata: {metadata}")
+            label = self.live_config.get('label-settings', {})
+
+            data_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], "data")
+            os.makedirs(data_output_dir, exist_ok=True)
+
+            from process_for_storage import process_for_storage
+            metadata = process_for_storage(full_image_path, cropping, label, data_output_dir)
+            logging.info(f"Grid cropping completed. Metadata: {metadata}")
+
             
         except Exception as e:
             logging.error(f"Error capturing image: {e}")
@@ -331,7 +328,7 @@ class CameraObject:
             "gridColumns": 3,
         }
         self.label_settings = {
-            "LabelEnable": False,
+            "LabelEnable": 0,
             "label1key": "Ra",
             "label1value": 0.0,
             "label2key": "Rz",
@@ -339,6 +336,13 @@ class CameraObject:
             "label3key": "Vis",
             "label3value": "null", 
             "resolutionCalibration": 0.0,
+            "LabelTurningEnable": 0,
+            "depthOfCut": 0,
+            "feed": 0,
+            "turningDiameter": 0,
+            "rpm": 0,
+            "tipRadius": 0,
+            "turningOperation": 0
         }
         self.rotation = {
             "hflip": 0,
@@ -510,7 +514,7 @@ class CameraObject:
                     logging.error(f"Erros saving CropSettings: {e}")
             elif key in self.live_config['label-settings']:
                 try:
-                    if key == 'LabelEnable':
+                    if key == 'LabelEnable' or key == 'LabelTurningEnable':
                         self.live_config['label-settings'][key] = int(data[key])
                     else:
                         self.live_config['label-settings'][key] = data[key]
