@@ -342,7 +342,9 @@ class CameraObject:
             "turningDiameter": 0,
             "rpm": 0,
             "tipRadius": 0,
-            "turningOperation": 0
+            "turningOperation": 0,
+            "material": "null",
+            "insert": "null"
         }
         self.rotation = {
             "hflip": 0,
