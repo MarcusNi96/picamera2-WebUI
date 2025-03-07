@@ -728,6 +728,15 @@
                                         <label for="tipRadius" class="form-label">Insert Radius</label>
                                         <input type="number" class="form-control" id="tipRadius" onchange="adjustNumericSetting('tipRadius')">
                                     </div>
+                                    <div class="col">
+                                        <label for="insert" class="form-label">Insert</label>
+                                        <input type="text" class="form-control" id="insert" onchange="adjustTextSetting('insert')">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <label for="material" class="form-label">Material</label>
+                                    <input type="text" class="form-control" id="material" onchange="adjustTextSetting('material')">
                                 </div>
 
                                 </div>
@@ -1129,7 +1138,7 @@ document.addEventListener('visibilitychange', function() {
     const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution','turningOperation'];
     const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw', 'CropEnable', 'LabelEnable', 'LabelTurningEnable'];
     const sliderSettings = ['LensPosition', 'ExposureValue', 'Brightness', 'Contrast', 'Saturation', 'Sharpness', 'AnalogueGain'];
-    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'FPS', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value', 'resolutionCalibration', 'depthOfCut', 'feed', 'turningDiameter', 'rpm', 'tipRadius'];
+    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'FPS', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value', 'resolutionCalibration', 'depthOfCut', 'feed', 'turningDiameter', 'rpm', 'tipRadius', 'insert', 'material'];
     const camera_num = {{ camera_num }};
     const camera_info = {{ camera_info | tojson }};
 
