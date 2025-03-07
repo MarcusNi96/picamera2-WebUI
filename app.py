@@ -333,7 +333,7 @@ class CameraObject:
             "label1value": 0.0,
             "label2key": "Rz",
             "label2value": 0.0,
-            "label3key": "Vis",
+            "label3key": "Overflate kode",
             "label3value": "null", 
             "resolutionCalibration": 0.0,
             "LabelTurningEnable": 0,
