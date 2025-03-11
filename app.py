@@ -238,7 +238,9 @@ class CameraObject:
             cropping = self.live_config.get('cropping-settings', {})
             label = self.live_config.get('label-settings', {})
 
-            data_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], "data")
+            # Use current date as folder name instead of "data"
+            data_folder = datetime.now().strftime("%Y%m%d")
+            data_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], data_folder)
             os.makedirs(data_output_dir, exist_ok=True)
 
             from process_for_storage import process_for_storage
