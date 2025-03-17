@@ -659,32 +659,27 @@
                             <div class="p-2" id="CroppingOptions">
                                 <div class="row">
                                     <div class="col">
-                                        <label for="label1key class="form-label">Label</label>
-                                        <input type="text" class="form-control" id="label1key" onchange="adjustTextSetting('label1key')">
-                                    </div>
-                                    <div class="col">
-                                        <label for="label1value class="form-label">Value</label>
-                                        <input type="number" class="form-control" id="label1value" min="0" max="100" onchange="adjustNumericSetting('label1value')">
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col">
-                                        <label for="label2key class="form-label">Label</label>
-                                        <input type="text" class="form-control" id="label2key" onchange="adjustTextSetting('label2key')">
-                                    </div>
-                                    <div class="col">
-                                        <label for="label2value class="form-label">Value</label>
-                                        <input type="number" class="form-control" id="label2value" min="0" max="100" onchange="adjustNumericSetting('label2value')">
+                                        <label for="passID" class="form-label">Pass ID</label>
+                                        <input type="number" class="form-control" id="passID" min="0" max="9990" step="1" value="0" onchange="adjustNumericSetting('passID')">
+                                        <small class="form-text text-muted">
+                                            Enter a 4-digit pass ID between 0000 and 9990.
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col">
-                                        <label for="label3key class="form-label">Label</label>
-                                        <input type="text" class="form-control" id="label3key" onchange="adjustTextSetting('label3key')">
+                                        <label for="Ra" class="form-label">Ra</label>
+                                        <input type="number" class="form-control" id="Ra" min="0" max="100" onchange="adjustNumericSetting('Ra')">
                                     </div>
                                     <div class="col">
-                                        <label for="label3value class="form-label">Class</label>
-                                        <input type="text"  id="label3value" class="form-control" onchange="adjustTextSetting('label3value')">
+                                        <label for="Rz" class="form-label">Rz</label>
+                                        <input type="number" class="form-control" id="Rz" min="0" max="100" onchange="adjustNumericSetting('Rz')">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="overflateKode" class="form-label">Overflate Kode </label>
+                                        <input type="text" id="overflateKode" class="form-control" onchange="adjustTextSetting('overflateKode')">
                                     </div>
                                 </div>
 
@@ -722,6 +717,11 @@
                                         <label for="rpm" class="form-label">RPM</label>
                                         <input type="number" class="form-control" id="rpm" onchange="adjustNumericSetting('rpm')">
                                     </div>
+                                </div>
+
+                                <div class="col">
+                                    <label class="form-label">Cutting Speed</label>
+                                    <span id="cuttingSpeed"></span>
                                 </div>
                                 <div class="row">
                                     <div class="col">
@@ -1146,7 +1146,7 @@ document.addEventListener('visibilitychange', function() {
     const checkboxSettings = ['AfMode', 'AfRange', 'AfSpeed', 'AeConstraintMode', 'AeExposureMode', 'AeFlickerMode', 'AeMeteringMode', 'AwbMode', 'Resolution','turningOperation'];
     const switchSettings = ['AwbEnable', 'AeEnable', 'AwbMode', 'hflip', 'vflip', 'makeRaw', 'CropEnable', 'LabelEnable', 'LabelTurningEnable'];
     const sliderSettings = ['LensPosition', 'ExposureValue', 'Brightness', 'Contrast', 'Saturation', 'Sharpness', 'AnalogueGain'];
-    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'FPS', 'label1key', 'label1value', 'label2key', 'label2value', 'label3key', 'label3value', 'resolutionCalibration', 'depthOfCut', 'feed', 'turningDiameter', 'rpm', 'tipRadius', 'insert', 'material', 'cuttingHead', 'boringBar'];
+    const inputSettings = ['ExposureTime', 'AeFlickerPeriod', 'cropSquareSize', 'gridRows', 'gridColumns', 'FPS', 'Ra', 'Rz', 'overflateKode', 'resolutionCalibration', 'depthOfCut', 'feed', 'turningDiameter', 'rpm', 'tipRadius', 'insert', 'material', 'cuttingHead', 'boringBar', 'passID'];
     const camera_num = {{ camera_num }};
     const camera_info = {{ camera_info | tojson }};
 
@@ -1228,7 +1228,7 @@ function showContent(id) {
     }
 
 function updateUI(settings) {
-    console.log("Settings object dfjklbfdkbfibehrirbfrilfbrirbeyirbrbufiurebirubr:", settings);
+    console.log("Settings object:", settings);
 
     // Ensure settings is an object
     if (typeof settings !== 'object' || settings === null) {
@@ -1242,6 +1242,13 @@ function updateUI(settings) {
             croppingSettings[key] = settings[key];
             console.log(key, settings[key]);
             drawCropGrid();
+        }
+        if (key === 'cuttingSpeed') {
+            const cuttingSpeedElem = document.getElementById('cuttingSpeed');
+            if (cuttingSpeedElem) {
+                cuttingSpeedElem.innerText = `${settings[key]} m/min`;
+            }
+            continue;
         }
         if (checkboxSettings.includes(key)) {
                 console.log(settings[key]);
@@ -1371,14 +1378,12 @@ function adjustSliderSetting(settingId, selection) {
     console.log(settingId, 'changed:', settingValue);
 }
 
-function adjustNumericSetting(settingId) {
-    // Handle the input change here
+function adjustNumericSetting(settingId) { 
     const inputElement = document.getElementById(settingId);
-    const setValue = parseFloat(inputElement.value); // Convert to a number
-    // Get the min and max values from the input element
+    const setValue = parseFloat(inputElement.value);
     const minValue = parseFloat(inputElement.min);
     const maxValue = parseFloat(inputElement.max);
-    // Check if the entered value is within the valid range
+
     if (setValue < minValue || setValue > maxValue || isNaN(setValue)) {
         // Add 'invalid' class to the input element
         inputElement.classList.add('is-invalid');
@@ -1388,6 +1393,13 @@ function adjustNumericSetting(settingId) {
         // Update UI and server settings
         updateUI({ [settingId]: setValue });
         updateLiveSettings({ [settingId]: setValue });
+            if (settingId === 'turningDiameter' || settingId === 'rpm') {
+                const rpm = parseFloat(document.getElementById('rpm').value) || 0;
+                const diameter = parseFloat(document.getElementById('turningDiameter').value) || 0;
+                const computedCuttingSpeed = Math.round((Math.PI * rpm * diameter) / 1000);
+                // Update only the cuttingSpeed element in UI
+                updateUI({ cuttingSpeed: computedCuttingSpeed });
+            }
     }
 }
 
@@ -1417,7 +1429,7 @@ function adjustScalerCrop() {
             
             const maxFrameWidth = parseInt(document.getElementById('ScalerCropWidth').max); // Maximum width of the cameraFrame
             const maxFrameHeight = parseInt(document.getElementById('ScalerCropHeight').max); // Maximum height of the cameraFrame
-            const minFrameWidth = parseInt(document.getElementById('ScalerCropWidth').min); // Minimum width of the cameraFrame
+const minFrameWidth = parseInt(document.getElementById('ScalerCropWidth').min); // Minimum width of the cameraFrame
             const minFrameHeight = parseInt(document.getElementById('ScalerCropHeight').min); // Minimum height of the cameraFrame
     
             // Adjust width if needed
@@ -1714,42 +1726,36 @@ function capturePhoto() {
         return;
     }
 
-    // Disable the button to prevent rapid presses
     captureButton.disabled = true;
     isButtonEnabled = false;
-    // Show alert based on the condition
     const alertElement = document.getElementById('captureAlert');
 
-    // Call your capture_photo function here
-    fetch('/capture_photo_'+ camera_num, {
+    fetch('/capture_photo_' + camera_num, {
         method: 'POST',
     })
     .then(response => response.json())
     .then(data => {
-        // Handle the success response here
-        console.log(data);
-
-        // Re-enable the button after a successful response
-        enableCaptureButton();
-        // Success alert
-        alertElement.className = 'alert alert-success';
-        alertElement.textContent = 'Image saved successfully.';
+        if (data.success) {
+            enableCaptureButton();
+            alertElement.className = 'alert alert-success';
+            alertElement.textContent = 'Image saved successfully.';
+        } else {
+            enableCaptureButton();
+            alertElement.className = 'alert alert-danger';
+            alertElement.textContent = 'Error: ' + data.message;
+        }
     })
     .catch(error => {
-        // Handle the error response here
         console.error('Error capturing photo:', error);
-        // Error alert
+        enableCaptureButton();
         alertElement.className = 'alert alert-danger';
         alertElement.textContent = 'Error capturing photo.';
-        // Re-enable the button in case of an error
-        enableCaptureButton();
     });
     alertElement.style.display = 'block';
 
-    // Optional: Hide the alert after a few seconds
     setTimeout(() => {
         alertElement.style.display = 'none';
-    }, 5000); // Adjust the time as needed
+    }, 5000);
 }
 
 function stop_timelapse() {

@@ -20,6 +20,8 @@ from picamera2.encoders import MJPEGEncoder
 from picamera2.outputs import FileOutput
 from libcamera import Transform, controls
 
+import math  # Added for cutting speed calculation
+
 # Init Flask
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)  # Generates a random 32-character hexadecimal string
@@ -233,23 +235,23 @@ class CameraObject:
             if self.live_config['capture-settings']["makeRaw"]:
                 request.save_dng(f'{filepath}.dng')
             request.release()
-            logging.info(f"Image captured successfully. Path: {full_image_path}")
 
             cropping = self.live_config.get('cropping-settings', {})
             label = self.live_config.get('label-settings', {})
 
-            # Use current date as folder name instead of "data"
-            data_folder = datetime.now().strftime("%Y%m%d")
-            data_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], data_folder)
-            os.makedirs(data_output_dir, exist_ok=True)
+            # Use current date as folder name
+            from new_pass import create_pass
+            dir = create_pass(label)
 
             from process_for_storage import process_for_storage
-            metadata = process_for_storage(full_image_path, cropping, label, data_output_dir)
+            metadata = process_for_storage(full_image_path, cropping, label, dir)
             logging.info(f"Grid cropping completed. Metadata: {metadata}")
-
-            
+            logging.info(f"Image captured successfully. Path: {full_image_path}")
+            return {"success": True, "message": "Image captured successfully", "metadata": metadata}
         except Exception as e:
             logging.error(f"Error capturing image: {e}")
+            # Return failure with the error message
+            return {"success": False, "message": str(e)}
 
     def start_streaming(self):
         self.output = StreamingOutput()
@@ -331,18 +333,18 @@ class CameraObject:
         }
         self.label_settings = {
             "LabelEnable": 0,
-            "label1key": "Ra",
-            "label1value": 0.0,
-            "label2key": "Rz",
-            "label2value": 0.0,
-            "label3key": "Overflate kode",
-            "label3value": "null", 
+            "passID": 0000,
+  
+            "Ra": 0.0,
+            "Rz": 0.0,
+            "overflateKode": "null", 
             "resolutionCalibration": 0.0,
             "LabelTurningEnable": 0,
             "depthOfCut": 0,
             "feed": 0,
             "turningDiameter": 0,
             "rpm": 0,
+            "cuttingSpeed": 0,
             "tipRadius": 0,
             "turningOperation": 0,
             "material": "null",
@@ -525,6 +527,12 @@ class CameraObject:
                         self.live_config['label-settings'][key] = int(data[key])
                     else:
                         self.live_config['label-settings'][key] = data[key]
+                    # If both turningDiameter and rpm are set, update cuttingSpeed
+                    if ('turningDiameter' in self.live_config['label-settings'] and 
+                        'rpm' in self.live_config['label-settings']):
+                        turningDiameter = float(self.live_config['label-settings'].get('turningDiameter', 0))
+                        rpm = float(self.live_config['label-settings'].get('rpm', 0))
+                        self.live_config['label-settings']['cuttingSpeed'] = int(round((math.pi * turningDiameter * rpm) / 1000.0))
                     success = True
                     settings = self.live_config['label-settings']
                     print(f'\nUpdated live setting:\n{settings}\n')
@@ -813,14 +821,13 @@ def save_config_file(camera_num):
 
 @app.route('/capture_photo_<int:camera_num>', methods=['POST'])
 def capture_photo(camera_num):
-    try:
-        cameras_data = [(camera_num, camera) for camera_num, camera in cameras.items()]
-        camera = cameras.get(camera_num)
-        camera.take_photo()  # Call your take_photo function
+    camera = cameras.get(camera_num)
+    result = camera.take_photo()  # Now returns a dict
+    if result.get("success"):
         time.sleep(1)
-        return jsonify(success=True, message="Photo captured successfully")
-    except Exception as e:
-        return jsonify(success=False, message=str(e))
+        return jsonify(success=True, message=result.get("message"))
+    else:
+        return jsonify(success=False, message=result.get("message"))
 
 @app.route("/about")
 def about():
@@ -970,6 +977,7 @@ def download_image(filename):
     except Exception as e:
         print(f"\nError downloading image:\n{e}\n")
         abort(500)
+
 
 if __name__ == "__main__":
     # Parse any argument passed from command line
