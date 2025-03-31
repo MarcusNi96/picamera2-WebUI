@@ -28,13 +28,13 @@ def preprocess_image(image_path, target_size=(224, 224)):
 
 if __name__ == "__main__":
     # Load the ONNX model
-    session = onnxruntime.InferenceSession("surface_model.onnx")
+    session = onnxruntime.InferenceSession("static/models/surface_model.onnx")
 
     # Get the name of the input
     input_name = session.get_inputs()[0].name
 
     # Specify your test image path
-    test_image_path = "test.jpg"  # Change this to your actual image path
+    test_image_path = "static/models/test.jpg"  # Change this to your actual image path
 
     # Process the image
     processed_image = preprocess_image(test_image_path)
