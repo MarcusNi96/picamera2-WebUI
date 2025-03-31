@@ -37,7 +37,7 @@ def create_pass(label_settings):
         if labelTurningEnable and int(labelTurningEnable) != 0:
             folder_name = f"{folder_name}-f{feed_round:.2f}-a{depth_round:.2f}-v{cuttingSpeed_str}-RE{insertRadius_str}"
 
-    base_dir = os.path.join("static", "gallery")
+    base_dir = os.path.join("static", "gallery","data")
     dir = os.path.join(base_dir, folder_name)
     
     # Create directory and, if new and labelEnable is true, write the metadata file.
