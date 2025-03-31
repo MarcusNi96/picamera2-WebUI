@@ -697,6 +697,55 @@ def inject_theme():
     version = "1.0.5"
     return dict(version=version, theme=theme)
 
+@app.route('/predict_surface_<int:camera_num>', methods=['POST'])
+def predict_surface(camera_num):
+    try:
+        camera = cameras.get(camera_num)
+        if not camera:
+            return jsonify(success=False, message="Camera not found")
+        
+        # Capture a temporary image (not saved to gallery)
+        temp_image_path = os.path.join(app.config['UPLOAD_FOLDER'], f'temp_predict_{camera_num}.jpg')
+        request = camera.camera.capture_request()
+        request.save("main", temp_image_path)
+        request.release()
+        
+        # Crop the middle of the image
+        from PIL import Image
+        img = Image.open(temp_image_path)
+        width, height = img.size
+        crop_size = 224  # Standard size for many models
+        left = (width - crop_size) // 2
+        top = (height - crop_size) // 2
+        right = left + crop_size
+        bottom = top + crop_size
+        cropped_img = img.crop((left, top, right, bottom))
+        cropped_path = os.path.join(app.config['UPLOAD_FOLDER'], f'temp_predict_crop_{camera_num}.jpg')
+        cropped_img.save(cropped_path)
+        
+        # Run model inference
+        from ml_module import preprocess_image
+        import onnxruntime
+        session = onnxruntime.InferenceSession("static/models/surface_model.onnx")
+        input_name = session.get_inputs()[0].name
+        processed_image = preprocess_image(cropped_path)
+        outputs = session.run(None, {input_name: processed_image})
+        
+        # Clean up temporary files
+        try:
+            os.remove(temp_image_path)
+            os.remove(cropped_path)
+        except Exception as e:
+            logging.warning(f"Failed to remove temporary files: {e}")
+        
+        # Extract predictions (Ra and Rz)
+        predictions = outputs[0][0].tolist()
+        
+        return jsonify(success=True, predictions=predictions)
+    except Exception as e:
+        logging.error(f"Error predicting surface: {e}")
+        return jsonify(success=False, message=str(e))
+
 @app.route('/set_theme/<theme>')
 def set_theme(theme):
     session['theme'] = theme
