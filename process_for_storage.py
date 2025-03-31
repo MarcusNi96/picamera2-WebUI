@@ -1,3 +1,4 @@
+import glob
 import os
 import json
 from datetime import datetime
@@ -24,6 +25,27 @@ def process_for_storage(full_image_path, cropping_settings, label_settings, outp
     columns = int(cropping_settings.get("gridColumns"))
     crop_square_size = int(cropping_settings.get("cropSquareSize"))
     common_labels = label_settings
+
+    # Extract passID and create passid_str (assumes label_settings contains "passID")
+    passid = label_settings.get("passID")
+    passid_str = f"{int(passid):04d}"
+    
+    # Look for matching metadata JSON file in output_dir using a glob search.
+    metadata_files = glob.glob(os.path.join(output_dir, f"{passid_str}_*.json"))
+    
+    # Let's assume you expect only one metadata file per pass.
+    if metadata_files:
+        metadata_file = metadata_files[0]
+        with open(metadata_file, "r") as f:
+            stored_data = json.load(f)
+        stored_labels = stored_data.get("labels", {})
+        
+        # Compare stored labels with the current label_settings (or common_labels)
+        # Here we assume that the current label settings must match exactly.
+        if stored_labels != label_settings:
+            raise ValueError("Stored labels do not match the current label settings. Aborting process.")
+ 
+
 
 
     with Image.open(full_image_path) as img:
