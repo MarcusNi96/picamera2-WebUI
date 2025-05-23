@@ -1,4 +1,5 @@
 # Picamera2 WebUI
+Not useful for other people than me i think.
 This is a fork that i will use for dataset collection for my masters thesis. I will do machine learning on pictures of surfaces, hence why I am cropping images in a grid to get the biggest possible dataset from my images.
 ## Overview
 
