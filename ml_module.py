@@ -13,8 +13,8 @@ def preprocess_image(image_path, target_size=(224, 224)):
     img_array = np.array(img, dtype=np.float32) / 255.0  # Explicitly use float32
     
     # Normalize using ImageNet mean and std (as float32)
-    mean = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape((1, 1, 3))
-    std = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape((1, 1, 3))
+    mean = np.array([0.4208, 0.4611, 0.5891], dtype=np.float32).reshape((1, 1, 3))
+    std = np.array([0.2431, 0.2383, 0.2306], dtype=np.float32).reshape((1, 1, 3))
     img_array = (img_array - mean) / std
     
     # Transpose from HWC to CHW format
