@@ -323,7 +323,7 @@ class CameraObject:
             "makeRaw": False,
             "Resolution": 0,
             "Encoder": "MJPEGEncoder",
-            "FPS": 1    # <-- Added FPS with default 1
+            "FPS": 10    # <-- Added FPS with default 1
         }
         self.cropping_settings = {
             "CropEnable": False,
