@@ -2,3 +2,6 @@ static/gallery/*
 .venv/*
 static/camera_config/*
 camera-last-config.json
+__pycache__/
+static/models/surface_model_old.onnx
+venv/
